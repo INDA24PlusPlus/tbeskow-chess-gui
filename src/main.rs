@@ -1,7 +1,7 @@
-use ggez::event::{self, EventHandler};
+use ggez::event::{self, EventHandler, MouseButton};
 use ggez::graphics::{self, Color, DrawParam, Image};
 use ggez::{Context, ContextBuilder, GameResult};
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use valterm_chess::*;
 
 const SQUARE_SIZE: i32 = 100;
@@ -9,6 +9,7 @@ const SQUARE_SIZE: i32 = 100;
 struct GameWrapper {
     game: Game,
     piece_images: PieceImages,
+    selected_piece: Option<Position>,  // Track selected piece
 }
 
 struct PieceImages {
@@ -28,6 +29,7 @@ struct PieceImages {
 
 impl PieceImages {
     fn new(ctx: &mut Context) -> GameResult<Self> {
+        // Load images for each piece from the resources folder.
         let white_pawn = Image::new(ctx, "/wP.png")?;
         let white_knight = Image::new(ctx, "/wN.png")?;
         let white_bishop = Image::new(ctx, "/wB.png")?;
@@ -57,7 +59,6 @@ impl PieceImages {
             black_king,
         })
     }
-    
 
     fn get_image(&self, piece: &Piece) -> &Image {
         match (piece.color, piece.piece_type) {
@@ -82,7 +83,35 @@ impl GameWrapper {
         let mut game = Game::new();
         game.default_board();
         let piece_images = PieceImages::new(ctx)?;
-        Ok(GameWrapper { game, piece_images })
+        Ok(GameWrapper { 
+            game, 
+            piece_images, 
+            selected_piece: None, 
+        })
+    }
+
+    fn handle_click(&mut self, mouse_x: f32, mouse_y: f32) {
+        let board_x = (mouse_x / SQUARE_SIZE as f32).floor() as i32;
+        let board_y = 7-(mouse_y / SQUARE_SIZE as f32).floor() as i32;
+
+        if board_x >= 0 && board_x < 8 && board_y >= 0 && board_y < 8 {
+            let position = Position { x: board_x as i8, y: board_y as i8 };
+            println!("{:?}", position);
+
+            if let Some(selected_position) = self.selected_piece {
+
+                let move_type = self.game.move_piece(selected_position, position);
+                if move_type == valterm_chess::moves::MoveType::Invalid {
+                    println!("Invalid move!");
+                    self.selected_piece = Some(position);
+                } else {
+                    println!("Moved {:?} to {:?}", selected_position, position);
+                    self.selected_piece = None; 
+                }
+            }else{
+                self.selected_piece = Some(position);
+            }
+        }
     }
 }
 
@@ -97,6 +126,7 @@ impl EventHandler for GameWrapper {
         let light_color = Color::from_rgb(240, 217, 181);  
         let dark_color = Color::from_rgb(181, 136, 99);   
         
+        // Draw chessboard
         for r in 0..8 {
             for c in 0..8 {
                 let rect = graphics::Rect::new(
@@ -115,14 +145,14 @@ impl EventHandler for GameWrapper {
             }
         }
         
+        // Draw pieces
         let pieces = self.game.get_pieces();
-        println!("{:?} {} {}", pieces[0].color, pieces[0].position.x, pieces[0].position.y);
         for piece in pieces {
             let image = self.piece_images.get_image(&piece);
             let draw_params = DrawParam::default()
                 .dest([
                     (SQUARE_SIZE * piece.position.x as i32) as f32,
-                    (SQUARE_SIZE * piece.position.y as i32) as f32,
+                    (SQUARE_SIZE * (7-piece.position.y) as i32) as f32,
                 ])
                 .scale([SQUARE_SIZE as f32 / image.width() as f32, SQUARE_SIZE as f32 / image.height() as f32]);  // Scale the image to fit the square
 
@@ -131,6 +161,12 @@ impl EventHandler for GameWrapper {
 
         graphics::present(ctx)?;
         Ok(())
+    }
+
+    fn mouse_button_down_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+        if button == MouseButton::Left {
+            self.handle_click(x, y);
+        }
     }
 }
 
