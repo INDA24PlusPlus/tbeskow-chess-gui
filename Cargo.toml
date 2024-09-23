@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 valterm-chess = { git = "https://github.com/INDA24PlusPlus/valterm-chess" }
+ggez = "0.7"
