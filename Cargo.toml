@@ -5,4 +5,7 @@ edition = "2021"
 
 [dependencies]
 valterm-chess = { git = "https://github.com/INDA24PlusPlus/valterm-chess" }
+chess-networking = { git = "https://github.com/INDA24PlusPlus/chess-networking" }
 ggez = "0.7"
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3"

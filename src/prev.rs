@@ -170,9 +170,7 @@ impl EventHandler for GameWrapper {
     }
 }
 
-pub fn run() {
-
-    return;
+fn main() {
     let resource_dir = PathBuf::from("./resources");
 
     let mode = ggez::conf::WindowMode::default().dimensions((SQUARE_SIZE * 8) as f32, (SQUARE_SIZE * 8) as f32);
