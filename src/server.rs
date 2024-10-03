@@ -30,18 +30,41 @@ pub fn run() -> std::io::Result<()>{
     let mut game = Game::new();
     game.default_board();
     loop{
-        let mut buf = [0u8; 128]; 
-        if game.current_move == Color::White{
-            stream1.read(&mut buf)?;
-        }else{
-            stream2.read(&mut buf)?;
-        }
-        let position = Position { x: buf[0] as i8, y: buf[1] as i8 };
-        let to_position = Position { x: buf[2] as i8, y: buf[3] as i8 };
+        let mut buf = [0u8; 1024]; // Increased buffer size to accommodate Move struct
+        let bytes_read = if game.current_move == Color::White {
+            stream1.read(&mut buf)?
+        } else {
+            stream2.read(&mut buf)?
+        };
+        
 
-        println!("{} {}", position, to_position);
-        let move_type = game.move_piece(position, to_position);
-        if move_type == valterm_chess::moves::MoveType::Invalid {continue;}
+        if let Ok(chess_move) = bincode::deserialize::<Move>(&buf[..bytes_read]) {
+            let position = Position { x: chess_move.from.0 as i8, y: chess_move.from.1 as i8 };
+            let to_position = Position { x: chess_move.to.0 as i8, y: chess_move.to.1 as i8 };
+
+            println!("{:?} {:?}", position, to_position);
+
+            println!("From: {:?}, To: {:?}", position, to_position);
+            let move_type = game.move_piece(position, to_position);
+            if move_type == valterm_chess::moves::MoveType::Invalid {continue;}
+            let _ = stream1.write(&bincode::serialize(&Move{
+                from: (position.x as u8, position.y as u8),
+                to: (to_position.x as u8, to_position.y as u8),
+                promotion: None,
+                forfeit: false,
+                offer_draw: false
+            }).unwrap());
+            let _ = stream2.write(&bincode::serialize(&Move{
+                from: (position.x as u8, position.y as u8),
+                to: (to_position.x as u8, to_position.y as u8),
+                promotion: None,
+                forfeit: false,
+                offer_draw: false
+            }).unwrap());
+        } else {
+            println!("Failed to deserialize move data");
+            continue;
+        }
 
 
     }

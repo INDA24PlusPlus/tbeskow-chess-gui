@@ -107,6 +107,9 @@ impl GameWrapper {
     }
 
     fn handle_click(&mut self, mouse_x: f32, mouse_y: f32) {
+        if self.is_white^(self.game.current_move == valterm_chess::Color::White){
+            self.selected_piece = None;
+        }
         let board_x = (mouse_x / SQUARE_SIZE as f32).floor() as i32;
         let board_y = 7-(mouse_y / SQUARE_SIZE as f32).floor() as i32;
 
@@ -116,17 +119,20 @@ impl GameWrapper {
                 y: if !self.is_white { 7 - board_y } else { board_y } as i8 
             };
             println!("{:?}", position);
+            println!("{:?}", self.selected_piece);
 
+            
             if let Some(selected_position) = self.selected_piece {
 
-                let move_type = self.game.move_piece(selected_position, position);
-                if move_type == valterm_chess::moves::MoveType::Invalid {
-                    println!("Invalid move!");
-                    self.selected_piece = Some(position);
-                } else {
-                    println!("Moved {:?} to {:?}", selected_position, position);
-                    self.selected_piece = None; 
-                }
+                let _ = (*self.stream.lock().unwrap()).write(&bincode::serialize(&Move{
+                    from: (selected_position.x as u8, selected_position.y as u8),
+                    to: (position.x as u8, position.y as u8),
+                    promotion: None,
+                    forfeit: false,
+                    offer_draw: false
+                }).unwrap());
+                
+                self.selected_piece = Some(position);
             }else{
                 self.selected_piece = Some(position);
             }
@@ -148,14 +154,19 @@ impl GameWrapper {
                         let is_white = received.is_white;
                         self.is_white = is_white;
                         self.game.default_board();
+                    } else if let Ok(received) = bincode::deserialize::<Move>(&buffer[..n]) {
+                        self.game.move_piece(
+                            Position { x: received.from.0 as i8, y: received.from.1 as i8 },
+                            Position { x: received.to.0 as i8, y: received.to.1 as i8 }
+                        );
                     } else {
                         println!("Failed to deserialize data");
                     }
                 }
-                Err(e) => {
+                Err(_e) => {
                     break;
-                    println!("Error reading from stream: {}", e);
-                    return Err(e);
+                    // println!("Error reading from stream: {}", e);
+                    // return Err(e);
                 }
             }
         }
