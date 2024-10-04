@@ -12,7 +12,6 @@ pub fn run() -> std::io::Result<()>{
 
     let (mut stream1, _addr) = listener.accept()?;
     let (mut stream2, _addr2) = listener.accept()?;
-    // add connected verification
     
     let mut start_state = Start{
         is_white: true,
@@ -30,7 +29,7 @@ pub fn run() -> std::io::Result<()>{
     let mut game = Game::new();
     game.default_board();
     loop{
-        let mut buf = [0u8; 1024]; // Increased buffer size to accommodate Move struct
+        let mut buf = [0u8; 1024]; 
         let bytes_read = if game.current_move == Color::White {
             stream1.read(&mut buf)?
         } else {

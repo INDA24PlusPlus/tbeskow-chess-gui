@@ -39,7 +39,6 @@ struct PieceImages {
 
 impl PieceImages {
     fn new(ctx: &mut Context) -> GameResult<Self> {
-        // Load images for each piece from the resources folder.
         let white_pawn = Image::new(ctx, "/wP.png")?;
         let white_knight = Image::new(ctx, "/wN.png")?;
         let white_bishop = Image::new(ctx, "/wB.png")?;
@@ -140,7 +139,7 @@ impl GameWrapper {
     }
 
     fn handle_network(&mut self) -> io::Result<()> {
-        let mut buffer = [0; 1024]; // Define a buffer with a fixed size
+        let mut buffer = [0; 1024]; 
         loop {
             let mut stream = self.stream.lock().unwrap();
             match (*stream).read(&mut buffer) {
@@ -165,8 +164,6 @@ impl GameWrapper {
                 }
                 Err(_e) => {
                     break;
-                    // println!("Error reading from stream: {}", e);
-                    // return Err(e);
                 }
             }
         }
